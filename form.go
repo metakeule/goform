@@ -287,9 +287,17 @@ func (ø *FormHandler) Parse(vals map[string]string) (err error) {
 			ø.JsonsOriginal[k] = v
 			var ii map[string]interface{}
 			err = json.Unmarshal([]byte(v), &ii)
+			for kk, vv := range ii {
+				if fl_v, ok := vv.(float64); ok {
+					if float64(int(fl_v)) == fl_v {
+						ii[kk] = int(fl_v)
+					}
+				}
+			}
 			if err != nil {
 				ø.AddFieldError(k, fmt.Errorf("%#v could not be parsed: %s", v, err))
 			}
+			//fmt.Printf("%v\n", ii)
 			ø.Fills[k].Fill(ii)
 		}
 	}

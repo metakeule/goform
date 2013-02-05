@@ -2,7 +2,7 @@ package goform
 
 import (
 	h "github.com/metakeule/goh4"
-	"github.com/metakeule/pgdb"
+	"github.com/metakeule/pgsql"
 	"github.com/metakeule/typeconverter"
 )
 
@@ -11,12 +11,12 @@ type TableForm struct {
 	afterCreation []func(*TableForm)
 }
 
-func NewTableForm(fields []*pgdb.Field, errorHandler func(error, []error, map[*Field][]error)) (ø *TableForm) {
+func NewTableForm(fields []*pgsql.Field, errorHandler func(error, []error, map[*Field][]error)) (ø *TableForm) {
 	ø = &TableForm{afterCreation: []func(*TableForm){}}
 	ø.FormHandler = NewForm(errorHandler)
 	for _, f := range fields {
 		var field *Field
-		if f.Is(pgdb.NullAllowed) {
+		if f.Is(pgsql.NullAllowed) {
 			field = Optional(
 				f.Name,
 				ø.getType(f.Type),
@@ -37,17 +37,17 @@ func NewTableForm(fields []*pgdb.Field, errorHandler func(error, []error, map[*F
 	return
 }
 
-func (ø *TableForm) getType(in pgdb.Type) (out Type) {
+func (ø *TableForm) getType(in pgsql.Type) (out Type) {
 	switch in {
-	case pgdb.IntType:
+	case pgsql.IntType:
 		return Int
-	case pgdb.FloatType:
+	case pgsql.FloatType:
 		return Float
 	}
 	return String
 }
 
-func (ø *TableForm) getElement(in *pgdb.Field) (out *h.Element) {
+func (ø *TableForm) getElement(in *pgsql.Field) (out *h.Element) {
 	if in.Selection != nil {
 		ø.afterCreation = append(ø.afterCreation, func(tf *TableForm) {
 			sell := []interface{}{}
@@ -58,10 +58,10 @@ func (ø *TableForm) getElement(in *pgdb.Field) (out *h.Element) {
 		})
 		return h.Select()
 	}
-	if pgdb.IsVarChar(in.Type) {
+	if pgsql.IsVarChar(in.Type) {
 		return h.Input()
 	}
-	if in.Type == pgdb.TextType {
+	if in.Type == pgsql.TextType {
 		return h.Textarea()
 	}
 

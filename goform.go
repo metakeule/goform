@@ -7,7 +7,7 @@ import (
 )
 
 type Filler interface {
-	Fill(m map[string]interface{})
+	Fill(m map[string]interface{}) error
 	Validate() error
 }
 

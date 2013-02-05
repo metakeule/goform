@@ -23,6 +23,7 @@ func (ø *Field) setFieldInfos() {
 	fs[0].Add(h.Class("field"), h.Id(ø.Name), h.Attr("name", ø.Name))
 	if ø.Required {
 		fs[0].Add(h.Attr("required", "required"))
+		fs[0].AddClass(h.Class("required"))
 	}
 	ø.setLabelInfos()
 }
