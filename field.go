@@ -29,7 +29,7 @@ func (ø *Field) setFieldInfos() {
 }
 
 func (ø *Field) setLabelInfos() {
-	_, label := ø.Element.Any(h.Tag("label"))
+	label := ø.Element.Any(h.Tag("label"))
 	if label != nil {
 		label.Add(h.Attr("for", ø.Name))
 		if ø.Required {

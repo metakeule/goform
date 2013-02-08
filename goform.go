@@ -11,14 +11,13 @@ type Filler interface {
 	Validate() error
 }
 
-func NewForm(errorHandler func(error, []error, map[*Field][]error), objects ...interface{}) (f *FormHandler) {
+func NewForm(objects ...interface{}) (f *FormHandler) {
 	f = &FormHandler{
-		errorHandler: errorHandler,
-		Types:        map[*Field]Type{},
-		Fields:       map[string]*Field{},
-		Order:        []h.Stringer{},
-		required:     []*Field{},
-		Element:      h.Form(),
+		Types:    map[*Field]Type{},
+		Fields:   map[string]*Field{},
+		Order:    []h.Stringer{},
+		required: []*Field{},
+		Element:  h.Form(),
 	}
 
 	for _, obj := range objects {
@@ -65,7 +64,7 @@ func Selection(Field *Field, vals ...interface{}) *Field {
 		}
 		Field.Selection = allowed
 	}
-	if _, sel := Field.Element.Any(h.Tag("select")); sel != nil {
+	if sel := Field.Element.Any(h.Tag("select")); sel != nil {
 		options := sel.All(h.Tag("option"))
 		for i, opt := range options {
 			var str string
@@ -76,7 +75,7 @@ func Selection(Field *Field, vals ...interface{}) *Field {
 	return Field
 }
 
-func Required(name string, t Typer, html ...h.Stringer) (ø *Field) {
+func Required(name string, t Typer, html ...interface{}) (ø *Field) {
 	e := h.NewElement(h.Tag("form"), h.WithoutDecoration)
 	e.Add(html...)
 	ø = &Field{Name: name, Type: t.Type(), Element: e, Required: true}
@@ -87,7 +86,7 @@ func Required(name string, t Typer, html ...h.Stringer) (ø *Field) {
 	return
 }
 
-func Optional(name string, t Typer, html ...h.Stringer) (ø *Field) {
+func Optional(name string, t Typer, html ...interface{}) (ø *Field) {
 	e := h.NewElement(h.Tag("form"), h.WithoutDecoration)
 	e.Add(html...)
 	ø = &Field{Name: name, Type: t.Type(), Element: e, Required: false}

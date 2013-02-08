@@ -11,6 +11,7 @@ const (
 	Map
 	Struct
 	Fill
+	Bool
 )
 
 type Type int
