@@ -1,9 +1,12 @@
 package goform
 
 import (
+	"fmt"
 	h "github.com/metakeule/goh4"
 	"github.com/metakeule/pgsql"
 	"github.com/metakeule/typeconverter"
+	"time"
+	// "html"
 )
 
 type TableForm struct {
@@ -61,7 +64,20 @@ func (ø *TableForm) SetValues(row *pgsql.Row) {
 				option.Add(h.Attr("selected", "selected"))
 			}
 		} else {
-			elem.Add(h.Attr("value", v))
+			if elem.Tag() == "textarea" {
+				elem.Add(v)
+			} else {
+				tp := elem.Attribute("type")
+				if tp == "date" {
+					var tme time.Time
+					field := row.Table.Field(k)
+					row.Get(field, &tme)
+					year, month, day := tme.Date()
+					// %02.0f.%02.0f.%4.0f
+					v = fmt.Sprintf("%4.0f-%02.0f-%02.0f", float64(year), float64(int(month)), float64(day))
+				}
+				elem.Add(h.Attr("value", v))
+			}
 		}
 	}
 }
@@ -95,7 +111,7 @@ func (ø *TableForm) getType(in pgsql.Type) (out Type) {
 
 func (ø *TableForm) SetLabels(o ...string) {
 	for i := 0; i < len(o); i = i + 2 {
-		ø.Label(o[i]).Add(h.Span(o[i+1]))
+		ø.Label(o[i]).AddAtPosition(0, h.Span(o[i+1]))
 	}
 }
 
@@ -105,7 +121,7 @@ func (ø *TableForm) SetLabelMap(m map[string]string) {
 		if l == nil {
 			continue
 		}
-		l.Add(h.Span(v))
+		l.AddAtPosition(0, h.Span(v))
 	}
 }
 
@@ -121,10 +137,7 @@ func (ø *TableForm) getElement(in *pgsql.Field) (out *h.Element) {
 		return h.Select()
 	}
 	if pgsql.IsVarChar(in.Type) {
-		return h.Input()
-	}
-	if in.Type == pgsql.TextType {
-		return h.Textarea()
+		return h.Input(h.Attr("type", "text"))
 	}
 
 	if in.Type == pgsql.BoolType {
@@ -134,7 +147,37 @@ func (ø *TableForm) getElement(in *pgsql.Field) (out *h.Element) {
 		)
 	}
 
-	return h.Input()
+	switch in.Type {
+	case pgsql.TextType:
+		return h.Textarea()
+	case pgsql.XmlType:
+		return h.Textarea(h.Class("xml"))
+	case pgsql.IntType:
+		return h.Input(h.Attr("type", "number"))
+	case pgsql.DateType:
+		return h.Input(h.Attr("type", "date"))
+	case pgsql.TimeType:
+		return h.Input(h.Attr("type", "time"))
+	}
+	return h.Input(h.Attr("type", "text"))
+
+	/*
+	 input[type="password"]:focus,
+	 input[type="datetime"]:focus,
+	 input[type="datetime-local"]:focus,
+	 input[type="date"]:focus,
+	 input[type="month"]:focus,
+	 input[type="time"]:focus,
+	 input[type="week"]:focus,
+	 input[type="number"]:focus,
+	 input[type="email"]:focus,
+	 input[type="url"]:focus,
+	 input[type="search"]:focus,
+	 input[type="tel"]:focus,
+	 input[type="color"]:focus,
+	 .uneditable-input:focus
+	*/
+
 }
 
 func (ø *TableForm) Unrequire(fld string) {

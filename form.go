@@ -74,6 +74,8 @@ func (ø *FormHandler) AddTitle(el *h.Element) { ø.AddAtPosition(0, el) }
 func (ø *FormHandler) AddSubmitButton(value string) (el *h.Element) {
 	el = h.Input(
 		h.Class("submit"),
+		h.Class("btn"),
+		h.Class("btn-primary"),
 		h.Attr("type", "submit", "value", value))
 	ø.Element.Add(el)
 	return
