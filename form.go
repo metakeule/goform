@@ -252,17 +252,15 @@ func (ø *FormHandler) Parse(vals map[string]string) (err error) {
 		case String:
 			ø.Strings[k] = v
 		case Bool:
-			/*if v == "on" {
+			if v == "on" {
 				ø.Bools[k] = true
 			} else {
-				ø.Bools[k] = false
-			}*/
-
-			b, err := strconv.ParseBool(v)
-			if err != nil {
-				ø.AddFieldError(k, fmt.Errorf("%#v is no bool", v))
+				b, err := strconv.ParseBool(v)
+				if err != nil {
+					ø.AddFieldError(k, fmt.Errorf("%#v is no bool", v))
+				}
+				ø.Bools[k] = b
 			}
-			ø.Bools[k] = b
 
 		case Float:
 			fl, err := strconv.ParseFloat(v, 32)
@@ -359,9 +357,18 @@ func (ø *FormHandler) Parse(vals map[string]string) (err error) {
 				ø.BeforeAction(ø)
 			}
 
+			if len(ø.FieldErrors) > 0 || len(ø.GeneralValidationErrors) > 0 {
+				err = fmt.Errorf("Field errors or general validation errors")
+				return
+			}
+
 			err = ø.Action(ø)
 			if err == nil && ø.AfterAction != nil {
 				ø.AfterAction(ø)
+
+				if len(ø.FieldErrors) > 0 || len(ø.GeneralValidationErrors) > 0 {
+					err = fmt.Errorf("Field errors or general validation errors")
+				}
 			}
 		}
 		return

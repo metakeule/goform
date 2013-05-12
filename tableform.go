@@ -14,6 +14,64 @@ type TableForm struct {
 	afterCreation []func(*TableForm)
 }
 
+func getType(in pgsql.Type) (out Type) {
+	switch in {
+	case pgsql.IntType:
+		return Int
+	case pgsql.FloatType:
+		return Float
+	case pgsql.BoolType:
+		return Bool
+	}
+	return String
+}
+
+func GetElement(in *pgsql.Field) (out *h.Element) {
+	if in.Selection != nil {
+		return h.Select()
+	}
+	if pgsql.IsVarChar(in.Type) {
+		return h.Input(h.Attr("type", "text"))
+	}
+
+	if in.Type == pgsql.BoolType {
+		return h.Select(
+			h.Option(h.Attr("value", "true"), "true"),
+			h.Option(h.Attr("value", "false"), "false"),
+		)
+	}
+
+	switch in.Type {
+	case pgsql.TextType:
+		return h.Textarea()
+	case pgsql.XmlType:
+		return h.Textarea(h.Class("xml"))
+	case pgsql.HtmlType:
+		return h.Textarea(h.Class("html"))
+	case pgsql.IntType:
+		return h.Input(h.Attr("type", "number"))
+	case pgsql.UuidType:
+		if in.ForeignKey != nil {
+			return h.Input(h.Attr("type", "text", "fkey", in.ForeignKey.Table.Name), h.Class("foreign-key"))
+		}
+		return h.Input(h.Attr("type", "text"))
+	case pgsql.DateType:
+		return h.Input(h.Attr("type", "text"), h.Class("date"))
+	case pgsql.TimeType:
+		return h.Input(h.Attr("type", "time"))
+	}
+	return h.Input(h.Attr("type", "text"))
+}
+
+func TableField(f *pgsql.Field, e *h.Element) (field *Field) {
+	if f.Is(pgsql.NullAllowed) {
+		field = Optional(f.Name, getType(f.Type), h.Label(e))
+	} else {
+		field = Required(f.Name, getType(f.Type), h.Label(e))
+	}
+	return
+}
+
 func NewTableForm(fields []*pgsql.Field) (ø *TableForm) {
 	ø = &TableForm{afterCreation: []func(*TableForm){}}
 	ø.FormHandler = NewForm()
@@ -22,13 +80,13 @@ func NewTableForm(fields []*pgsql.Field) (ø *TableForm) {
 		if f.Is(pgsql.NullAllowed) {
 			field = Optional(
 				f.Name,
-				ø.getType(f.Type),
+				getType(f.Type),
 				h.Label(ø.getElement(f)),
 			)
 		} else {
 			field = Required(
 				f.Name,
-				ø.getType(f.Type),
+				getType(f.Type),
 				h.Label(ø.getElement(f)),
 			)
 		}
@@ -45,8 +103,14 @@ func (ø *TableForm) SetBoolTexts(trueText string, falseText string) {
 	for n, f := range ø.Fields {
 		if f.Type == Bool {
 			elem := ø.FieldElement(n)
-			elem.Any(h.And(h.Attr("value", "true"), h.Tag("option"))).Set(trueText)
-			elem.Any(h.And(h.Attr("value", "false"), h.Tag("option"))).Set(falseText)
+			trueOpt := elem.Any(h.And(h.Attr("value", "true"), h.Tag("option")))
+			if trueOpt != nil {
+				trueOpt.SetContent(trueText)
+			}
+			falseOpt := elem.Any(h.And(h.Attr("value", "false"), h.Tag("option")))
+			if falseOpt != nil {
+				falseOpt.SetContent(falseText)
+			}
 		}
 	}
 }
@@ -67,8 +131,9 @@ func (ø *TableForm) SetValues(row *pgsql.Row) {
 			if elem.Tag() == "textarea" {
 				elem.Add(v)
 			} else {
-				tp := elem.Attribute("type")
-				if tp == "date" {
+				//tp := elem.Attribute("type")
+				//if tp == "date" {
+				if elem.HasClass("date") {
 					var tme time.Time
 					field := row.Table.Field(k)
 					row.Get(field, &tme)
@@ -82,31 +147,19 @@ func (ø *TableForm) SetValues(row *pgsql.Row) {
 	}
 }
 
-func (ø *TableForm) SetSaveAction(row *pgsql.Row, id int) {
+func (ø *TableForm) SetSaveAction(row *pgsql.Row, id string) {
 	ø.Action = func(f *FormHandler) (err error) {
 		err = row.Fill(f.Map())
 		if err != nil {
 			return err
 		}
-		if id != 0 {
-			row.Set(row.Table.PrimaryKey, id)
+		if id != "new" && len(row.Table.PrimaryKey) == 1 {
+			row.Set(row.Table.PrimaryKey[0], id)
 		}
 
 		err = row.Save()
 		return
 	}
-}
-
-func (ø *TableForm) getType(in pgsql.Type) (out Type) {
-	switch in {
-	case pgsql.IntType:
-		return Int
-	case pgsql.FloatType:
-		return Float
-	case pgsql.BoolType:
-		return Bool
-	}
-	return String
 }
 
 func (ø *TableForm) SetLabels(o ...string) {
@@ -152,10 +205,17 @@ func (ø *TableForm) getElement(in *pgsql.Field) (out *h.Element) {
 		return h.Textarea()
 	case pgsql.XmlType:
 		return h.Textarea(h.Class("xml"))
+	case pgsql.HtmlType:
+		return h.Textarea(h.Class("html"))
+	case pgsql.UuidType:
+		if in.ForeignKey != nil {
+			return h.Input(h.Attr("type", "text", "fkey", in.ForeignKey.Table.Name), h.Class("foreign-key"))
+		}
+		return h.Input(h.Attr("type", "text"))
 	case pgsql.IntType:
 		return h.Input(h.Attr("type", "number"))
 	case pgsql.DateType:
-		return h.Input(h.Attr("type", "date"))
+		return h.Input(h.Class("date"), h.Attr("type", "text"))
 	case pgsql.TimeType:
 		return h.Input(h.Attr("type", "time"))
 	}
@@ -225,7 +285,7 @@ func (ø *TableForm) Selection(fld string, vals ...interface{}) {
 
 	if sel.Tag() != "select" {
 		innerSelect := h.Select()
-		label.Set(innerSelect)
+		label.SetContent(innerSelect)
 		field.Element = label
 		field.setFieldInfos()
 		sel = innerSelect
