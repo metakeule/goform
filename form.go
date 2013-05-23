@@ -223,6 +223,169 @@ func (ø *FormHandler) Validate() {
 
 }
 
+func (ø *FormHandler) ParseFormValues(vals map[string][]string) (err error) {
+	ø.FilledFields = []string{}
+	//ø.FieldErrors = map[*Field][]error{}
+	//ø.GeneralValidationErrors = []error{}
+	if ø.BeforeParsing != nil {
+		ø.BeforeParsing(ø)
+	}
+
+	for kk, v := range vals {
+		if len(v) == 0 {
+			continue
+		}
+		if ø.Fields[kk] == nil {
+			continue
+		}
+
+		k := ø.Fields[kk]
+
+		switch ø.Types[k] {
+		case Int:
+			i, err := strconv.ParseInt(v[0], 0, 32)
+			if err != nil {
+				ø.AddFieldError(k, fmt.Errorf("%#v is no int", v[0]))
+			}
+			ø.Ints[k] = int(i)
+		case String:
+			ø.Strings[k] = v[0]
+		case Bool:
+			if v[0] == "on" {
+				ø.Bools[k] = true
+			} else {
+				b, err := strconv.ParseBool(v[0])
+				if err != nil {
+					ø.AddFieldError(k, fmt.Errorf("%#v is no bool", v[0]))
+				}
+				ø.Bools[k] = b
+			}
+
+		case Float:
+			fl, err := strconv.ParseFloat(v[0], 32)
+			if err != nil {
+				ø.AddFieldError(k, fmt.Errorf("%#v is no float", v[0]))
+			}
+			ø.Floats[k] = float32(fl)
+		case IntArray:
+			m := []int{}
+			for _, str := range v {
+				trimmed := strings.Trim(str, " ")
+				i, err := strconv.ParseInt(trimmed, 0, 32)
+				if err != nil {
+					ø.AddFieldError(k, fmt.Errorf("%#v is no int", str))
+				}
+				m = append(m, int(i))
+			}
+			ø.IntArrays[k] = m
+		case FloatArray:
+			m := []float32{}
+			for _, str := range v {
+				trimmed := strings.Trim(str, " ")
+				i, err := strconv.ParseFloat(trimmed, 32)
+				if err != nil {
+					ø.AddFieldError(k, fmt.Errorf("%#v is no float", str))
+				}
+				m = append(m, float32(i))
+			}
+			ø.FloatArrays[k] = m
+
+		case StringArray:
+			m := []string{}
+			for _, str := range v {
+				m = append(m, str)
+			}
+			ø.StringArrays[k] = m
+		case Struct:
+			ø.JsonsOriginal[k] = v[0]
+			ø.JsonStructs[k] = k.Constructor()
+			i := ø.JsonStructs[k]
+
+			dec := json.NewDecoder(strings.NewReader(v[0]))
+			err = dec.Decode(i)
+			if err != nil {
+				ø.AddFieldError(k, fmt.Errorf("%#v could not be parsed: %s", v[0], err))
+			}
+		case Map:
+			ø.JsonsOriginal[k] = v[0]
+			var ii map[string]interface{}
+			err = json.Unmarshal([]byte(v[0]), &ii)
+			ø.JsonMaps[k] = ii
+			if err != nil {
+				ø.AddFieldError(k, fmt.Errorf("%#v could not be parsed: %s", v[0], err))
+			}
+		case Fill:
+			ø.JsonsOriginal[k] = v[0]
+			var ii map[string]interface{}
+			err = json.Unmarshal([]byte(v[0]), &ii)
+			for kk, vv := range ii {
+				if fl_v, ok := vv.(float64); ok {
+					if float64(int(fl_v)) == fl_v {
+						ii[kk] = int(fl_v)
+					}
+				}
+			}
+			if err != nil {
+				ø.AddFieldError(k, fmt.Errorf("%#v could not be parsed: %s", v[0], err))
+			}
+			ø.Fills[k].Fill(ii)
+		}
+		ø.FilledFields = append(ø.FilledFields, k.Name)
+	}
+	if ø.AfterParsing != nil {
+		ø.AfterParsing(ø)
+	}
+
+	if ø.BeforeValidation != nil {
+		ø.BeforeValidation(ø)
+	}
+
+	ø.Validate()
+
+	if ø.AfterValidation != nil {
+		ø.AfterValidation(ø)
+	}
+
+	if len(ø.FieldErrors) == 0 && len(ø.GeneralValidationErrors) == 0 {
+		if ø.Action != nil {
+			if ø.BeforeAction != nil {
+				ø.BeforeAction(ø)
+			}
+
+			if len(ø.FieldErrors) > 0 || len(ø.GeneralValidationErrors) > 0 {
+				err = fmt.Errorf("Field errors or general validation errors")
+				return
+			}
+
+			err = ø.Action(ø)
+			if err == nil && ø.AfterAction != nil {
+				ø.AfterAction(ø)
+
+				if len(ø.FieldErrors) > 0 || len(ø.GeneralValidationErrors) > 0 {
+					err = fmt.Errorf("Field errors or general validation errors")
+				}
+			}
+		}
+		return
+	}
+
+	if len(ø.FieldErrors) > 0 && len(ø.GeneralValidationErrors) > 0 {
+		err = fmt.Errorf("Field errors and general validation errors")
+		return
+	}
+
+	if len(ø.FieldErrors) > 0 {
+		err = fmt.Errorf("Field errors")
+		return
+	}
+
+	if len(ø.GeneralValidationErrors) > 0 {
+		err = fmt.Errorf("general validation errors")
+	}
+
+	return
+}
+
 func (ø *FormHandler) Parse(vals map[string]string) (err error) {
 	ø.FilledFields = []string{}
 	//ø.FieldErrors = map[*Field][]error{}
