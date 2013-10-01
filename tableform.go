@@ -3,6 +3,7 @@ package goform
 import (
 	"fmt"
 	h "github.com/metakeule/goh4"
+	. "github.com/metakeule/goh4/tag"
 	"github.com/metakeule/pgsql"
 	"github.com/metakeule/typeconverter"
 	"time"
@@ -28,46 +29,46 @@ func getType(in pgsql.Type) (out Type) {
 
 func GetElement(in *pgsql.Field) (out *h.Element) {
 	if in.Selection != nil {
-		return h.Select()
+		return SELECT()
 	}
 	if pgsql.IsVarChar(in.Type) {
-		return h.Input(h.Attr("type", "text"))
+		return INPUT(h.Attr("type", "text"))
 	}
 
 	if in.Type == pgsql.BoolType {
-		return h.Select(
-			h.Option(h.Attr("value", "true"), "true"),
-			h.Option(h.Attr("value", "false"), "false"),
+		return SELECT(
+			OPTION(h.Attr("value", "true"), "true"),
+			OPTION(h.Attr("value", "false"), "false"),
 		)
 	}
 
 	switch in.Type {
 	case pgsql.TextType:
-		return h.Textarea()
+		return TEXTAREA()
 	case pgsql.XmlType:
-		return h.Textarea(h.Class("xml"))
+		return TEXTAREA(h.Class("xml"))
 	case pgsql.HtmlType:
-		return h.Textarea(h.Class("html"))
+		return TEXTAREA(h.Class("html"))
 	case pgsql.IntType:
-		return h.Input(h.Attr("type", "number"))
+		return INPUT(h.Attr("type", "number"))
 	case pgsql.UuidType:
 		if in.ForeignKey != nil {
-			return h.Input(h.Attr("type", "text", "fkey", in.ForeignKey.Table.Name), h.Class("foreign-key"))
+			return INPUT(h.Attr("type", "text", "fkey", in.ForeignKey.Table.Name), h.Class("foreign-key"))
 		}
-		return h.Input(h.Attr("type", "text"))
+		return INPUT(h.Attr("type", "text"))
 	case pgsql.DateType:
-		return h.Input(h.Attr("type", "text"), h.Class("date"))
+		return INPUT(h.Attr("type", "text"), h.Class("date"))
 	case pgsql.TimeType:
-		return h.Input(h.Attr("type", "time"))
+		return INPUT(h.Attr("type", "time"))
 	}
-	return h.Input(h.Attr("type", "text"))
+	return INPUT(h.Attr("type", "text"))
 }
 
 func TableField(f *pgsql.Field, e *h.Element) (field *Field) {
 	if f.Is(pgsql.NullAllowed) {
-		field = Optional(f.Name, getType(f.Type), h.Label(e))
+		field = Optional(f.Name, getType(f.Type), LABEL(e))
 	} else {
-		field = Required(f.Name, getType(f.Type), h.Label(e))
+		field = Required(f.Name, getType(f.Type), LABEL(e))
 	}
 	return
 }
@@ -81,13 +82,13 @@ func NewTableForm(fields []*pgsql.Field) (ø *TableForm) {
 			field = Optional(
 				f.Name,
 				getType(f.Type),
-				h.Label(ø.getElement(f)),
+				LABEL(ø.getElement(f)),
 			)
 		} else {
 			field = Required(
 				f.Name,
 				getType(f.Type),
-				h.Label(ø.getElement(f)),
+				LABEL(ø.getElement(f)),
 			)
 		}
 		ø.AddField(field)
@@ -103,11 +104,11 @@ func (ø *TableForm) SetBoolTexts(trueText string, falseText string) {
 	for n, f := range ø.Fields {
 		if f.Type == Bool {
 			elem := ø.FieldElement(n)
-			trueOpt := elem.Any(h.And(h.Attr("value", "true"), h.Tag("option")))
+			trueOpt := elem.Any(h.And_(h.Attr("value", "true"), h.Tag("option")))
 			if trueOpt != nil {
 				trueOpt.SetContent(trueText)
 			}
-			falseOpt := elem.Any(h.And(h.Attr("value", "false"), h.Tag("option")))
+			falseOpt := elem.Any(h.And_(h.Attr("value", "false"), h.Tag("option")))
 			if falseOpt != nil {
 				falseOpt.SetContent(falseText)
 			}
@@ -123,7 +124,7 @@ func (ø *TableForm) SetValues(row *pgsql.Row) {
 		}
 		elem := ø.FieldElement(k)
 		if elem.Tag() == "select" {
-			option := elem.Any(h.And(h.Attr("value", v), h.Tag("option")))
+			option := elem.Any(h.And_(h.Attr("value", v), h.Tag("option")))
 			if option != nil {
 				option.Add(h.Attr("selected", "selected"))
 			}
@@ -164,7 +165,7 @@ func (ø *TableForm) SetSaveAction(row *pgsql.Row, id string) {
 
 func (ø *TableForm) SetLabels(o ...string) {
 	for i := 0; i < len(o); i = i + 2 {
-		ø.Label(o[i]).AddAtPosition(0, h.Span(o[i+1]))
+		ø.Label(o[i]).AddAtPosition(0, SPAN(o[i+1]))
 	}
 }
 
@@ -174,7 +175,7 @@ func (ø *TableForm) SetLabelMap(m map[string]string) {
 		if l == nil {
 			continue
 		}
-		l.AddAtPosition(0, h.Span(v))
+		l.AddAtPosition(0, SPAN(v))
 	}
 }
 
@@ -187,39 +188,39 @@ func (ø *TableForm) getElement(in *pgsql.Field) (out *h.Element) {
 			}
 			tf.Selection(in.Name, sell...)
 		})
-		return h.Select()
+		return SELECT()
 	}
 	if pgsql.IsVarChar(in.Type) {
-		return h.Input(h.Attr("type", "text"))
+		return INPUT(h.Attr("type", "text"))
 	}
 
 	if in.Type == pgsql.BoolType {
-		return h.Select(
-			h.Option(h.Attr("value", "true"), "true"),
-			h.Option(h.Attr("value", "false"), "false"),
+		return SELECT(
+			OPTION(h.Attr("value", "true"), "true"),
+			OPTION(h.Attr("value", "false"), "false"),
 		)
 	}
 
 	switch in.Type {
 	case pgsql.TextType:
-		return h.Textarea()
+		return TEXTAREA()
 	case pgsql.XmlType:
-		return h.Textarea(h.Class("xml"))
+		return TEXTAREA(h.Class("xml"))
 	case pgsql.HtmlType:
-		return h.Textarea(h.Class("html"))
+		return TEXTAREA(h.Class("html"))
 	case pgsql.UuidType:
 		if in.ForeignKey != nil {
-			return h.Input(h.Attr("type", "text", "fkey", in.ForeignKey.Table.Name), h.Class("foreign-key"))
+			return INPUT(h.Attr("type", "text", "fkey", in.ForeignKey.Table.Name), h.Class("foreign-key"))
 		}
-		return h.Input(h.Attr("type", "text"))
+		return INPUT(h.Attr("type", "text"))
 	case pgsql.IntType:
-		return h.Input(h.Attr("type", "number"))
+		return INPUT(h.Attr("type", "number"))
 	case pgsql.DateType:
-		return h.Input(h.Class("date"), h.Attr("type", "text"))
+		return INPUT(h.Class("date"), h.Attr("type", "text"))
 	case pgsql.TimeType:
-		return h.Input(h.Attr("type", "time"))
+		return INPUT(h.Attr("type", "time"))
 	}
-	return h.Input(h.Attr("type", "text"))
+	return INPUT(h.Attr("type", "text"))
 
 	/*
 	 input[type="password"]:focus,
@@ -252,12 +253,12 @@ func (ø *TableForm) Unrequire(fld string) {
 }
 
 func (ø *TableForm) Label(fld string) (e *h.Element) {
-	e = ø.Any(h.And(h.Tag("label"), h.Attr("for", fld)))
+	e = ø.Any(h.And_(h.Tag("label"), h.Attr("for", fld)))
 	return
 }
 
 func (ø *TableForm) Select(fld string) (e *h.Element) {
-	e = ø.Any(h.And(h.Tag("select"), h.Id(fld)))
+	e = ø.Any(h.And_(h.Tag("select"), h.Id(fld)))
 	return
 }
 
@@ -284,7 +285,7 @@ func (ø *TableForm) Selection(fld string, vals ...interface{}) {
 	sel := ø.FieldElement(fld)
 
 	if sel.Tag() != "select" {
-		innerSelect := h.Select()
+		innerSelect := SELECT()
 		label.SetContent(innerSelect)
 		field.Element = label
 		field.setFieldInfos()
@@ -294,6 +295,6 @@ func (ø *TableForm) Selection(fld string, vals ...interface{}) {
 	for _, v := range vals {
 		r := ""
 		typeconverter.Convert(v, &r)
-		sel.Add(h.Option(h.Attr("value", r), h.Text(r)))
+		sel.Add(OPTION(h.Attr("value", r), h.Text(r)))
 	}
 }

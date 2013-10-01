@@ -3,6 +3,7 @@ package goform
 import (
 	_ "fmt"
 	h "github.com/metakeule/goh4"
+	. "github.com/metakeule/goh4/tag"
 	"github.com/metakeule/typeconverter"
 )
 
@@ -17,7 +18,7 @@ func NewForm(objects ...interface{}) (f *FormHandler) {
 		Fields:   map[string]*Field{},
 		Order:    []h.Stringer{},
 		required: []*Field{},
-		Element:  h.Form(),
+		Element:  FORM(ATTR("method", "POST", "enctype", "multipart/form-data")),
 	}
 
 	for _, obj := range objects {

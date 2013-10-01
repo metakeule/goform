@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	h "github.com/metakeule/goh4"
+	. "github.com/metakeule/goh4/tag"
 	"strconv"
 	"strings"
 )
@@ -43,7 +44,7 @@ type FormHandler struct {
 }
 
 func (ø *FormHandler) resetElement() {
-	ø.Element = h.Form()
+	ø.Element = FORM(ATTR("method", "POST", "enctype", "multipart/form-data"))
 	for _, s := range ø.Order {
 		if f, ok := s.(*Field); ok {
 			ø.Element.Add(f.Element)
@@ -72,7 +73,7 @@ func (ø *FormHandler) Reset() {
 func (ø *FormHandler) AddTitle(el *h.Element) { ø.AddAtPosition(0, el) }
 
 func (ø *FormHandler) AddSubmitButton(value string) (el *h.Element) {
-	el = h.Input(
+	el = INPUT(
 		h.Class("submit"),
 		h.Class("btn"),
 		h.Class("btn-primary"),
